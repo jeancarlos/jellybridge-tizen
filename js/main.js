@@ -2,11 +2,8 @@
 //
 // Architecture:
 //   This Tizen app stays in the FOREGROUND so the TV OS delivers all remote
-//   key events to it. jeanserver's HDMI output is embedded full-screen via
-//   tizen.tvwindow, so the user sees Jellyfin while the app intercepts keys.
-//
-//   key press → keydown event → HTTP GET /key?k=<action> → jbr-daemon.py
-//             → xdotool key → Jellyfin Media Player → HDMI output updates
+//   key events to it. jeanserver's HDMI output is shown via tvsourcemanager
+//   + tizen.tvwindow, so the user sees Jellyfin while the app intercepts keys.
 
 // ─── Keys that need explicit registration with the TV OS ─────────────────────
 var REGISTER_KEYS = [
@@ -51,8 +48,8 @@ function sendKey(action) {
   var xhr = new XMLHttpRequest();
   xhr.timeout = CONFIG.timeout;
   xhr.open('GET', CONFIG.serverUrl + '/key?k=' + action, true);
-  xhr.onload   = function() { setStatus(''); };
-  xhr.onerror  = function() { setStatus('jeanserver unreachable'); };
+  xhr.onload    = function() { setStatus(''); };
+  xhr.onerror   = function() { setStatus('jeanserver unreachable'); };
   xhr.ontimeout = function() { setStatus('timeout'); };
   xhr.send();
 }
@@ -73,18 +70,56 @@ function registerKeys() {
 }
 
 // ─── tvwindow ─────────────────────────────────────────────────────────────────
-// Renders jeanserver's HDMI input as the full-screen background of this app.
-// The app DOM (transparent) floats on top, capturing all key events.
-function showHDMI() {
+// Shows the HDMI source full-screen behind the transparent app DOM.
+function showTVWindow() {
   try {
     tizen.tvwindow.show(
       function() { setStatus(''); },
-      function(err) { setStatus('HDMI: ' + (err && err.message)); },
+      function(err) { setStatus('win err: ' + (err && err.message)); },
       ['0px', '0px', '1920px', '1080px'],
       'MAIN'
     );
   } catch (e) {
     setStatus('tvwindow: ' + e.message);
+  }
+}
+
+// ─── Source switch → tvwindow ─────────────────────────────────────────────────
+// Explicitly switches the TV to the configured HDMI port so tvwindow has
+// content to render. Called once on init.
+function showHDMI() {
+  try {
+    var sources = webapis.tvsourcemanager.getSourceList();
+    var target = null;
+    for (var i = 0; i < sources.length; i++) {
+      if (sources[i].type === 'HDMI' && sources[i].number === CONFIG.hdmiPort) {
+        target = sources[i];
+        break;
+      }
+    }
+
+    if (!target) {
+      setStatus('HDMI ' + CONFIG.hdmiPort + ' not found');
+      showTVWindow();
+      return;
+    }
+
+    webapis.tvsourcemanager.setSource(
+      target,
+      function() {
+        // Source is now active — show it in tvwindow
+        setTimeout(showTVWindow, 300);
+      },
+      function(err) {
+        setStatus('src: ' + (err && err.message));
+        // Still try tvwindow with whatever source is active
+        setTimeout(showTVWindow, 300);
+      }
+    );
+  } catch (e) {
+    // webapis.tvsourcemanager not available — fall back to tvwindow directly
+    setStatus('src api: ' + e.message);
+    setTimeout(showTVWindow, 300);
   }
 }
 
