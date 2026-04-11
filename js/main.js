@@ -1,9 +1,9 @@
 // JellyBridge — Samsung remote → jeanserver input bridge
 //
-// Architecture:
-//   This Tizen app stays in the FOREGROUND so the TV OS delivers all remote
-//   key events to it. jeanserver's HDMI output is shown via tvsourcemanager
-//   + tizen.tvwindow, so the user sees Jellyfin while the app intercepts keys.
+// The app body is fully transparent. When launched while HDMI 2 is active,
+// Tizen keeps the HDMI video layer visible behind the transparent DOM.
+// The app stays in the foreground, capturing all remote key events and
+// forwarding them via HTTP to jbr-daemon.py on jeanserver.
 
 // ─── Keys that need explicit registration with the TV OS ─────────────────────
 var REGISTER_KEYS = [
@@ -69,60 +69,6 @@ function registerKeys() {
   }
 }
 
-// ─── tvwindow ─────────────────────────────────────────────────────────────────
-// Shows the HDMI source full-screen behind the transparent app DOM.
-function showTVWindow() {
-  try {
-    tizen.tvwindow.show(
-      function() { setStatus(''); },
-      function(err) { setStatus('win err: ' + (err && err.message)); },
-      ['0px', '0px', '1920px', '1080px'],
-      'MAIN'
-    );
-  } catch (e) {
-    setStatus('tvwindow: ' + e.message);
-  }
-}
-
-// ─── Source switch → tvwindow ─────────────────────────────────────────────────
-// Explicitly switches the TV to the configured HDMI port so tvwindow has
-// content to render. Called once on init.
-function showHDMI() {
-  try {
-    var sources = webapis.tvsourcemanager.getSourceList();
-    var target = null;
-    for (var i = 0; i < sources.length; i++) {
-      if (sources[i].type === 'HDMI' && sources[i].number === CONFIG.hdmiPort) {
-        target = sources[i];
-        break;
-      }
-    }
-
-    if (!target) {
-      setStatus('HDMI ' + CONFIG.hdmiPort + ' not found');
-      showTVWindow();
-      return;
-    }
-
-    webapis.tvsourcemanager.setSource(
-      target,
-      function() {
-        // Source is now active — show it in tvwindow
-        setTimeout(showTVWindow, 300);
-      },
-      function(err) {
-        setStatus('src: ' + (err && err.message));
-        // Still try tvwindow with whatever source is active
-        setTimeout(showTVWindow, 300);
-      }
-    );
-  } catch (e) {
-    // webapis.tvsourcemanager not available — fall back to tvwindow directly
-    setStatus('src api: ' + e.message);
-    setTimeout(showTVWindow, 300);
-  }
-}
-
 // ─── Key event handler ────────────────────────────────────────────────────────
 window.addEventListener('keydown', function(e) {
   var action = KEY_MAP[e.keyCode];
@@ -133,5 +79,6 @@ window.addEventListener('keydown', function(e) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 registerKeys();
-showHDMI();
+// Hide status after 2s — only show it on errors
+setTimeout(function() { setStatus(''); }, 2000);
 setStatus('JellyBridge');
