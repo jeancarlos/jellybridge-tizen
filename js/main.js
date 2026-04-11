@@ -34,6 +34,7 @@ var KEY_MAP = {
 // ─── State ────────────────────────────────────────────────────────────────────
 var lastSent = 0;
 var statusEl = document.getElementById('status');
+var screenEl = document.getElementById('screen');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function setStatus(msg) {
@@ -77,8 +78,28 @@ window.addEventListener('keydown', function(e) {
   sendKey(action);
 });
 
+// ─── Screen polling ───────────────────────────────────────────────────────────
+function startStream() {
+  var snapshotUrl = CONFIG.serverUrl + '/snapshot';
+  var frameCount = 0;
+
+  screenEl.onload = function() {
+    frameCount++;
+    if (frameCount === 1) setStatus('');  // clear "Connecting..." on first frame
+    // Load next frame immediately after current one renders
+    screenEl.src = snapshotUrl + '?t=' + Date.now();
+  };
+  screenEl.onerror = function() {
+    setStatus('stream error — retrying');
+    setTimeout(function() {
+      screenEl.src = snapshotUrl + '?t=' + Date.now();
+    }, 1000);
+  };
+
+  setStatus('Connecting to jeanserver...');
+  screenEl.src = snapshotUrl + '?t=' + Date.now();
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 registerKeys();
-// Hide status after 2s — only show it on errors
-setTimeout(function() { setStatus(''); }, 2000);
-setStatus('JellyBridge');
+startStream();
