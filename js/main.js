@@ -1,9 +1,8 @@
 // JellyBridge — Samsung remote → jeanserver input bridge
 //
-// The app body is fully transparent. When launched while HDMI 2 is active,
-// Tizen keeps the HDMI video layer visible behind the transparent DOM.
-// The app stays in the foreground, capturing all remote key events and
-// forwarding them via HTTP to jbr-daemon.py on jeanserver.
+// The app body is fully transparent. Tizen keeps the HDMI video layer 
+// visible behind the transparent DOM. The app stays in the foreground, 
+// capturing all remote key events and forwarding them via HTTP to jbr-daemon.py.
 
 // ─── Keys that need explicit registration with the TV OS ─────────────────────
 var REGISTER_KEYS = [
@@ -34,7 +33,6 @@ var KEY_MAP = {
 // ─── State ────────────────────────────────────────────────────────────────────
 var lastSent = 0;
 var statusEl = document.getElementById('status');
-var screenEl = document.getElementById('screen');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function setStatus(msg) {
@@ -53,6 +51,40 @@ function sendKey(action) {
   xhr.onerror   = function() { setStatus('jeanserver unreachable'); };
   xhr.ontimeout = function() { setStatus('timeout'); };
   xhr.send();
+}
+
+// ─── Input Switching ──────────────────────────────────────────────────────────
+function switchToHDMI() {
+  if (!tizen || !tizen.tvwindow) {
+    setStatus('tvwindow API missing');
+    return;
+  }
+
+  tizen.tvwindow.getAvailableSources(function(sources) {
+    var found = false;
+    for (var i = 0; i < sources.length; i++) {
+        var s = sources[i];
+        if (s.type === 'HDMI' && s.number === CONFIG.hdmiPort) {
+            tizen.tvwindow.setSource(s, function() {
+                // Show window full screen (0, 0, 1920, 1080)
+                // Use 'BEHIND' so DOM is in front
+                tizen.tvwindow.show([0, 0, 1920, 1080], 'BEHIND', function() {
+                    setStatus('HDMI ' + CONFIG.hdmiPort + ' active');
+                    setTimeout(function() { setStatus(''); }, 3000);
+                }, function(err) {
+                    setStatus('Window show failed: ' + err.message);
+                });
+            }, function(err) {
+                setStatus('Input switch failed: ' + err.message);
+            });
+            found = true;
+            break;
+        }
+    }
+    if (!found) setStatus('HDMI ' + CONFIG.hdmiPort + ' not found');
+  }, function(err) {
+    setStatus('Source list failed: ' + err.message);
+  });
 }
 
 // ─── Key registration ─────────────────────────────────────────────────────────
@@ -74,32 +106,12 @@ function registerKeys() {
 window.addEventListener('keydown', function(e) {
   var action = KEY_MAP[e.keyCode];
   if (!action) return;
+  
+  // Always prevent default for mapped keys to avoid TV system interference
   e.preventDefault();
   sendKey(action);
 });
 
-// ─── Screen polling ───────────────────────────────────────────────────────────
-function startStream() {
-  var snapshotUrl = CONFIG.serverUrl + '/snapshot';
-  var frameCount = 0;
-
-  screenEl.onload = function() {
-    frameCount++;
-    if (frameCount === 1) setStatus('');  // clear "Connecting..." on first frame
-    // Load next frame immediately after current one renders
-    screenEl.src = snapshotUrl + '?t=' + Date.now();
-  };
-  screenEl.onerror = function() {
-    setStatus('stream error — retrying');
-    setTimeout(function() {
-      screenEl.src = snapshotUrl + '?t=' + Date.now();
-    }, 1000);
-  };
-
-  setStatus('Connecting to jeanserver...');
-  screenEl.src = snapshotUrl + '?t=' + Date.now();
-}
-
 // ─── Init ─────────────────────────────────────────────────────────────────────
 registerKeys();
-startStream();
+switchToHDMI();
