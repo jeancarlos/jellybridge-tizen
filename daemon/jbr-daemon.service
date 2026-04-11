@@ -1,0 +1,15 @@
+[Unit]
+Description=JellyBridge Input Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=jean
+ExecStart=/usr/bin/python3 /home/jean/scripts/jbr-daemon.py
+Restart=always
+RestartSec=3
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/jean/.Xauthority
+
+[Install]
+WantedBy=multi-user.target
