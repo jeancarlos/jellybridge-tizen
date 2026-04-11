@@ -8,7 +8,7 @@
 var REGISTER_KEYS = [
   'MediaPlay', 'MediaPause', 'MediaStop', 'MediaPlayPause',
   'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
-  'Info', 'XF86Back'
+  'Info', 'XF86Back', 'Return'
 ];
 
 // ─── Samsung remote keyCode → action label ────────────────────────────────────
