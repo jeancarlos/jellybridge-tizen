@@ -14,7 +14,7 @@ source "$ENV_FILE"
 export PATH="$TIZEN_PATH/tools/ide/bin:$TIZEN_PATH/tools:$PATH"
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk}"
 
-APP="JlyBridg0.JellyBridge"
+APP="JlyBridge0.JellyBridge"
 
 echo "==> Packaging..."
 tizen package -t wgt -s "$PROFILE" -- "$DIR"
