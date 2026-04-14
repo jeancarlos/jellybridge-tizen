@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """
-JellyBridge Input Daemon
-- /key?k=<action>  — inject keyboard event into Jellyfin via xdotool
+PlexBridge Input Daemon
+- /key?k=<action>  — inject keyboard event into Plex HTPC via xdotool
 - /health          — liveness check
-
-Note: 
-- Capturing and streaming removed in favor of direct HDMI input switching via Tizen API.
-- requires 'xdotool' installed natively.
 """
 
 import http.server
@@ -17,7 +13,7 @@ import threading
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-log = logging.getLogger('jbr')
+log = logging.getLogger('pbr')
 
 # Configuration
 DISPLAY = os.environ.get('DISPLAY', ':0')
@@ -35,12 +31,12 @@ KEY_MAP = {
     'play':      'space',
     'pause':     'space',
     'playpause': 'space',
-    'stop':      'x',        # Jellyfin: stop playback
-    'info':      'i',        # Jellyfin: show info overlay
-    'red':       'F1',
-    'green':     'F2',
-    'yellow':    'F3',
-    'blue':      'F4',
+    'stop':      'Escape',   # Plex has no stop — returns to home
+    'info':      'i',        # Plex HTPC: info overlay
+    'red':       's',        # Plex HTPC: subtitle selection
+    'green':     'a',        # Plex HTPC: audio track selection
+    'yellow':    'period',   # Plex HTPC: next chapter
+    'blue':      'comma',    # Plex HTPC: previous chapter
 }
 
 # ─── Key injection ────────────────────────────────────────────────────────────
@@ -52,10 +48,8 @@ if os.path.exists(XAUTHORITY):
 
 def inject_key(key_name):
     try:
-        # Search for window name containing 'Jellyfin'
-        # Then activate it and send key
         cmd = [
-            'xdotool', 'search', '--name', 'Jellyfin',
+            'xdotool', 'search', '--name', 'Plex HTPC',
             'windowactivate', '--sync',
             'key', '--clearmodifiers', '--', key_name
         ]
@@ -116,7 +110,7 @@ class ThreadedHTTPServer(http.server.HTTPServer):
 
 
 if __name__ == '__main__':
-    log.info('JellyBridge daemon listening on :%d', PORT)
+    log.info('PlexBridge daemon listening on :%d', PORT)
     server = ThreadedHTTPServer(('0.0.0.0', PORT), Handler)
     try:
         server.serve_forever()
