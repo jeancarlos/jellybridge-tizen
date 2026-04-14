@@ -1,3 +1,4 @@
 .env
 *.wgt
 .DS_Store
+daemon/__pycache__/
