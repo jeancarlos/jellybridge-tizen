@@ -1,24 +1,24 @@
-# JellyBridge
+# PlexBridge
 
-Samsung remote → Jellyfin Media Player control bridge for the Q70A + jeanserver HTPC setup.
+Samsung remote → Plex HTPC control bridge for the Q70A + jeanserver HTPC setup.
 
 ```
 [Samsung One Remote]
     ↓ Bluetooth (stays paired to TV)
-[Q70A — JellyBridge Tizen app — FOREGROUND]
+[Q70A — PlexBridge Tizen app — FOREGROUND]
     |— Shows: jeanserver HDMI output via tizen.tvwindow (full screen)
     |— Captures: nav key events (arrows, Enter, Back, Play/Pause)
     |— Forwards: HTTP GET → jeanserver:9000/key?k=<action>
-[jeanserver — jbr-daemon.py]
+[jeanserver — pbr-daemon.py]
     |— Injects: keyboard events into X11 via xdotool
     ↓
-[Jellyfin Media Player — TV mode, reacts to arrow/enter/esc/space]
+[Plex HTPC — TV mode, reacts to arrow/enter/esc/space/s/a/./,]
     ↓ HDMI-0
 [Q70A screen — shown via tvwindow in the Tizen app]
 ```
 
 The Tizen app stays in the foreground (solving the "background key capture" limitation),
-while embedding jeanserver's HDMI output via `tizen.tvwindow` so the user sees Jellyfin.
+while embedding jeanserver's HDMI output via `tizen.tvwindow` so the user sees Plex HTPC.
 
 ---
 
@@ -43,10 +43,10 @@ sudo apt-get install -y xdotool
 
 ```bash
 ssh jean@jeanserver
-cp ~/jellybridge-tizen/daemon/jbr-daemon.py ~/scripts/jbr-daemon.py
-sudo cp ~/jellybridge-tizen/daemon/jbr-daemon.service /etc/systemd/system/
+cp ~/plexbridge-tizen/daemon/pbr-daemon.py ~/scripts/pbr-daemon.py
+sudo cp ~/plexbridge-tizen/daemon/pbr-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now jbr-daemon
+sudo systemctl enable --now pbr-daemon
 ```
 
 ### 3. Configure HDMI port
@@ -72,7 +72,7 @@ Uses the same profile/certificates as `aerial-tizen` (AerialProfile).
 
 ## Key Mapping
 
-| Samsung Remote | Action sent | Jellyfin effect |
+| Samsung Remote | Action sent | Plex HTPC effect |
 |---|---|---|
 | ▲ ▼ ◀ ▶ | up/down/left/right | Navigate |
 | OK | enter | Select |
@@ -80,8 +80,12 @@ Uses the same profile/certificates as `aerial-tizen` (AerialProfile).
 | ⏯ | playpause | Play / Pause |
 | ▶ Play | play | Play |
 | ⏸ Pause | pause | Pause |
-| ⏹ Stop | stop | Stop playback |
-| ⓘ Info | info | Info overlay |
+| ⏹ Stop | stop | Back to home (Escape) |
+| ⓘ Info | info | Info overlay (i) |
+| Red | red | Subtitle selection (s) |
+| Green | green | Audio track selection (a) |
+| Yellow | yellow | Next chapter (.) |
+| Blue | blue | Previous chapter (,) |
 | Volume ▲▼, Power | *(not captured)* | Native TV behavior |
 
 ---
@@ -91,8 +95,10 @@ Uses the same profile/certificates as `aerial-tizen` (AerialProfile).
 Configure via TizenBrew autolaunch (already installed on the TV):
 
 ```
-TizenBrew → Module settings → Autolaunch → Add JlyBridg0.JellyBridge
+TizenBrew → Module settings → Autolaunch → Add PlxBridge0.PlexBridge
 ```
+
+Remove old entry JlyBridge0.JellyBridge if present.
 
 ---
 
@@ -101,4 +107,12 @@ TizenBrew → Module settings → Autolaunch → Add JlyBridg0.JellyBridge
 ```bash
 curl http://192.168.1.200:9000/health
 # → HTTP 200
+```
+
+---
+
+## Running tests
+
+```bash
+python3 daemon/test_pbr_daemon.py -v
 ```
