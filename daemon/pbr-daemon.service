@@ -1,11 +1,11 @@
 [Unit]
-Description=JellyBridge Input Daemon
+Description=PlexBridge Input Daemon
 After=network.target
 
 [Service]
 Type=simple
 User=jean
-ExecStart=/usr/bin/python3 /home/jean/scripts/jbr-daemon.py
+ExecStart=/usr/bin/python3 /home/jean/scripts/pbr-daemon.py
 Restart=always
 RestartSec=3
 Environment=DISPLAY=:0
