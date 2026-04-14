@@ -56,34 +56,38 @@ function sendKey(action) {
 // ─── Input Switching ──────────────────────────────────────────────────────────
 function switchToHDMI() {
   if (!tizen || !tizen.tvwindow) {
-    setStatus('tvwindow API missing');
+    setStatus('ERR: tvwindow API missing');
     return;
   }
 
+  setStatus('Getting sources...');
   tizen.tvwindow.getAvailableSources(function(sources) {
+    var list = sources.map(function(s) { return s.type + s.number; }).join(' ');
+    setStatus('Sources: ' + list);
+
     var found = false;
     for (var i = 0; i < sources.length; i++) {
         var s = sources[i];
         if (s.type === 'HDMI' && s.number === CONFIG.hdmiPort) {
+            setStatus('setSource HDMI' + CONFIG.hdmiPort + '...');
             tizen.tvwindow.setSource(s, function() {
-                // Show window full screen (0, 0, 1920, 1080)
-                // Use 'BEHIND' so DOM is in front
+                setStatus('show()...');
                 tizen.tvwindow.show([0, 0, 1920, 1080], 'BEHIND', function() {
                     setStatus('HDMI ' + CONFIG.hdmiPort + ' active');
-                    setTimeout(function() { setStatus(''); }, 3000);
+                    setTimeout(function() { setStatus(''); }, 5000);
                 }, function(err) {
-                    setStatus('Window show failed: ' + err.message);
+                    setStatus('ERR show: ' + err.message);
                 });
             }, function(err) {
-                setStatus('Input switch failed: ' + err.message);
+                setStatus('ERR setSource: ' + err.message);
             });
             found = true;
             break;
         }
     }
-    if (!found) setStatus('HDMI ' + CONFIG.hdmiPort + ' not found');
+    if (!found) setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not in list: ' + list);
   }, function(err) {
-    setStatus('Source list failed: ' + err.message);
+    setStatus('ERR getAvailableSources: ' + err.message);
   });
 }
 
