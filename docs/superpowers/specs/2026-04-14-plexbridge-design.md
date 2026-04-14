@@ -105,11 +105,11 @@ Files: `config.xml`, `index.html`, `deploy.sh`
 
 ### 6. Deploy
 
-Same pipeline as JellyBridge:
-1. Convert icon: `cwebp`/`dwebp` or `ffmpeg` to convert `.webp` → `.png`
-2. Deploy daemon: copy `pbr-daemon.py` + service to jeanserver, restart systemd unit
-3. Package + deploy Tizen app: `./deploy.sh`
-4. Update TizenBrew autolaunch to new app ID
+1. Convert icon: `dwebp` or `ffmpeg` to convert `plex-icon-filled-256.webp` → `icon.png`
+2. Stop old daemon on jeanserver: `sudo systemctl stop jbr-daemon && sudo systemctl disable jbr-daemon`
+3. Deploy new daemon: copy `pbr-daemon.py` + `pbr-daemon.service` to jeanserver, enable and start `pbr-daemon`
+4. Package + deploy Tizen app: `./deploy.sh`
+5. Update TizenBrew autolaunch: remove `JlyBridge0.JellyBridge`, add `PlxBridge0.PlexBridge`
 
 ---
 
