@@ -49,7 +49,7 @@ if os.path.exists(XAUTHORITY):
 def inject_key(key_name):
     try:
         cmd = [
-            'xdotool', 'search', '--name', 'Plex HTPC',
+            'xdotool', 'search', '--maxdepth', '10', '--name', 'Plex HTPC',
             'windowactivate', '--sync',
             'key', '--clearmodifiers', '--', key_name
         ]
