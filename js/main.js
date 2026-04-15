@@ -54,6 +54,12 @@ function sendKey(action) {
 }
 
 // ─── Input Switching ──────────────────────────────────────────────────────────
+//
+// TVWindow.show() signature (callbacks FIRST, per Tizen convention):
+//   show(successCB, errorCB, rectangle, windowType, zPosition)
+// rectangle must be DOMString[]: ['0px','0px','1920px','1080px']
+// zPosition 'BEHIND' places the video layer below the DOM overlay.
+//
 function switchToHDMI() {
   if (!tizen || !tizen.tvwindow) {
     setStatus('ERR: tvwindow API missing');
@@ -66,13 +72,20 @@ function switchToHDMI() {
         var s = sources[i];
         if (s.type === 'HDMI' && s.number === CONFIG.hdmiPort) {
             tizen.tvwindow.setSource(s, function() {
-                tizen.tvwindow.show([0, 0, 1920, 1080], 'BEHIND', function() {
-                    setTimeout(function() { setStatus(''); }, 2000);
-                }, function(err) {
-                    setStatus('ERR: ' + err.message);
-                });
+                tizen.tvwindow.show(
+                    function() {
+                        // HDMI visible behind overlay — clear status after 2s
+                        setTimeout(function() { setStatus(''); }, 2000);
+                    },
+                    function(err) {
+                        setStatus('ERR show: ' + err.message);
+                    },
+                    ['0px', '0px', '1920px', '1080px'],
+                    'MAIN',
+                    'BEHIND'
+                );
             }, function(err) {
-                setStatus('ERR: ' + err.message);
+                setStatus('ERR setSource: ' + err.message);
             });
             found = true;
             break;
@@ -80,7 +93,7 @@ function switchToHDMI() {
     }
     if (!found) setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not found');
   }, function(err) {
-    setStatus('ERR: ' + err.message);
+    setStatus('ERR getSources: ' + err.message);
   });
 }
 
