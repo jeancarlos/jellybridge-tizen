@@ -60,34 +60,27 @@ function switchToHDMI() {
     return;
   }
 
-  setStatus('Getting sources...');
   tizen.tvwindow.getAvailableSources(function(sources) {
-    var list = sources.map(function(s) { return s.type + s.number; }).join(' ');
-    setStatus('Sources: ' + list);
-
     var found = false;
     for (var i = 0; i < sources.length; i++) {
         var s = sources[i];
         if (s.type === 'HDMI' && s.number === CONFIG.hdmiPort) {
-            setStatus('setSource HDMI' + CONFIG.hdmiPort + '...');
             tizen.tvwindow.setSource(s, function() {
-                setStatus('show()...');
                 tizen.tvwindow.show([0, 0, 1920, 1080], 'BEHIND', function() {
-                    setStatus('HDMI ' + CONFIG.hdmiPort + ' active');
-                    setTimeout(function() { setStatus(''); }, 5000);
+                    setTimeout(function() { setStatus(''); }, 2000);
                 }, function(err) {
-                    setStatus('ERR show: ' + err.message);
+                    setStatus('ERR: ' + err.message);
                 });
             }, function(err) {
-                setStatus('ERR setSource: ' + err.message);
+                setStatus('ERR: ' + err.message);
             });
             found = true;
             break;
         }
     }
-    if (!found) setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not in list: ' + list);
+    if (!found) setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not found');
   }, function(err) {
-    setStatus('ERR getAvailableSources: ' + err.message);
+    setStatus('ERR: ' + err.message);
   });
 }
 

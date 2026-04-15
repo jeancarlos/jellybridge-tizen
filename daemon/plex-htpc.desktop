@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=Plex HTPC
+Exec=screen -dmS plex /home/jean/scripts/plex-htpc-watch.sh
