@@ -1,0 +1,14 @@
+[Unit]
+Description=Plex HTPC
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/run/user/1000/gdm/Xauthority
+ExecStart=flatpak run tv.plex.PlexHTPC
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
