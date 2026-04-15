@@ -55,43 +55,51 @@ function sendKey(action) {
 
 // ─── Input Switching ──────────────────────────────────────────────────────────
 //
-// TVWindow.show() signature (callbacks FIRST, per Tizen convention):
-//   show(successCB, errorCB, rectangle, windowType, zPosition)
-// rectangle must be DOMString[]: ['0px','0px','1920px','1080px']
-// zPosition 'BEHIND' places the video layer below the DOM overlay.
+// Status messages are intentionally persistent here for diagnostics.
+// Each step labels itself so we can see exactly where the API stops.
 //
 function switchToHDMI() {
   if (!tizen || !tizen.tvwindow) {
-    setStatus('ERR: tvwindow API missing');
+    setStatus('ERR: no tvwindow API');
     return;
   }
 
+  setStatus('getSources...');
   tizen.tvwindow.getAvailableSources(function(sources) {
-    var found = false;
+    var list = sources.map(function(s) {
+      return s.type + (s.number !== undefined ? s.number : '');
+    }).join(' ');
+    setStatus('sources: ' + list);
+
+    var target = null;
     for (var i = 0; i < sources.length; i++) {
-        var s = sources[i];
-        if (s.type === 'HDMI' && s.number === CONFIG.hdmiPort) {
-            tizen.tvwindow.setSource(s, function() {
-                tizen.tvwindow.show(
-                    function() {
-                        // HDMI visible behind overlay — clear status after 2s
-                        setTimeout(function() { setStatus(''); }, 2000);
-                    },
-                    function(err) {
-                        setStatus('ERR show: ' + err.message);
-                    },
-                    ['0px', '0px', '1920px', '1080px'],
-                    'MAIN',
-                    'BEHIND'
-                );
-            }, function(err) {
-                setStatus('ERR setSource: ' + err.message);
-            });
-            found = true;
-            break;
-        }
+      if (sources[i].type === 'HDMI' && sources[i].number === CONFIG.hdmiPort) {
+        target = sources[i];
+        break;
+      }
     }
-    if (!found) setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not found');
+    if (!target) {
+      setStatus('ERR: HDMI' + CONFIG.hdmiPort + ' not in: ' + list);
+      return;
+    }
+
+    setStatus('setSource HDMI' + CONFIG.hdmiPort + '...');
+    tizen.tvwindow.setSource(target, function() {
+      setStatus('show...');
+      // Brief delay after setSource — some Samsung firmware needs time
+      // before the video layer accepts the show() call.
+      setTimeout(function() {
+        tizen.tvwindow.show(
+          function() { setStatus('HDMI' + CONFIG.hdmiPort + ' OK'); },
+          function(err) { setStatus('ERR show: ' + err.message); },
+          ['0px', '0px', '1920px', '1080px'],
+          'MAIN',
+          'BEHIND'
+        );
+      }, 500);
+    }, function(err) {
+      setStatus('ERR setSource: ' + err.message);
+    });
   }, function(err) {
     setStatus('ERR getSources: ' + err.message);
   });
